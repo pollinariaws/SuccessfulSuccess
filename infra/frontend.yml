@@ -116,6 +116,7 @@ Resources:
   # rules can be added later at no extra cost.
   WebAcl:
     Type: AWS::WAFv2::WebACL
+    Condition: HasFreePlan
     Properties:
       Name: !Sub "${ProjectName}-frontend"
       Scope: CLOUDFRONT
@@ -135,7 +136,7 @@ Resources:
       DistributionConfig:
         Comment: !Sub "${ProjectName} frontend"
         Enabled: true
-        WebACLId: !GetAtt WebAcl.Arn
+        WebACLId: !If [HasFreePlan, !GetAtt WebAcl.Arn, !Ref "AWS::NoValue"]
         HttpVersion: http2and3
         IPV6Enabled: true
         DefaultRootObject: index.html
