@@ -22,29 +22,34 @@ export function UserMenu() {
   const label = user.name ?? user.email ?? "Account"
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-lg" className="rounded-full" aria-label="Account menu">
-          <Avatar className="size-9">
-            <AvatarFallback className="tint-violet text-xs font-semibold">
-              {initials(user.name ?? user.email?.split("@")[0] ?? "?")}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuLabel className="font-normal">
-          <p className="truncate text-sm font-semibold">{label}</p>
-          {user.email && user.email !== label ? (
-            <p className="text-muted-foreground truncate text-xs">{user.email}</p>
-          ) : null}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void signOut()}>
-          <LogOut aria-hidden />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-3">
+      <span className="text-muted-foreground hidden max-w-48 truncate text-sm sm:inline">
+        {user.email}
+      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-lg" className="rounded-full" aria-label="Account menu">
+            <Avatar className="size-9">
+              <AvatarFallback className="tint-violet text-xs font-semibold">
+                {initials(user.name ?? user.email?.split("@")[0] ?? "?")}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuLabel className="font-normal">
+            <p className="truncate text-sm font-semibold">{label}</p>
+            {user.email && user.email !== label ? (
+              <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+            ) : null}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => void signOut()}>
+            <LogOut aria-hidden />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
