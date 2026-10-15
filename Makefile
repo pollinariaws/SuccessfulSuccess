@@ -368,3 +368,13 @@ aws-destroy: ## Delete every stack, including the database and its data
 	$(AWS) cloudformation delete-stack --stack-name $(ECR_STACK)
 	$(AWS) cloudformation wait stack-delete-complete --stack-name $(ECR_STACK)
 	@echo "All stacks deleted."
+
+aws-deploy-reports: aws-push ## Deploy the weekly report
+	$(require-aws-credentials)
+	@AWS_CLI="$(AWS)" PROJECT_NAME="$(PROJECT_NAME)" ECR_STACK="$(ECR_STACK)" APP_STACK="$(APP_STACK)" IMAGE_TAG="$(IMAGE_TAG)" AWS_LAMBDA_ARCH="$(AWS_LAMBDA_ARCH)" APP_TIMEZONE="$(APP_TIMEZONE)" MAIL_TO="$(REPORT_MAIL_TO)" bash infra/reports.sh deploy
+
+report-now: ## Build a report on demand: make report-now WEEK=2026-W39
+	@AWS_CLI="$(AWS)" PROJECT_NAME="$(PROJECT_NAME)" bash infra/reports.sh now "$(WEEK)"
+
+aws-destroy-reports: ## Delete the weekly report stack (before aws-destroy)
+	@AWS_CLI="$(AWS)" PROJECT_NAME="$(PROJECT_NAME)" bash infra/reports.sh destroy
