@@ -13,6 +13,7 @@ from sqlalchemy import (
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -40,6 +41,10 @@ class Meeting(Base):
     location: Mapped[str | None] = mapped_column(String(200), nullable=True)
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # What the LLM suggested when the meeting was created from pasted text: the parsed
+    # agenda, the model and the prompt version. The saved fields above are what the
+    # person finally accepted, so the difference between the two is the quality signal.
+    ai_suggestion: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

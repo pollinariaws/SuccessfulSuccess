@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Paste an agenda: a Lambda function (outside the VPC) that asks Claude on Amazon Bedrock
+  to turn pasted text into a structured agenda. It needs no database and never writes anything.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: successfulsuccess
+  ImageUri:
+    Type: String
+  Architecture:
+    Type: String
+    Default: x86_64
+    AllowedValues: [x86_64, arm64]
+  CognitoUserPoolId:
+    Type: String
+  CognitoClientId:
+    Type: String
+  CorsOrigins:
+    Type: CommaDelimitedList
+    Description: Origins that may call the parser from a browser (no trailing slash).
+  ParserModel:
+    Type: String
+    Default: global.anthropic.claude-haiku-4-5-20251001-v1:0
+  BedrockRegion:
+    Type: String
+    Default: eu-north-1
+
+Resources:
+  ParserRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: bedrock
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Broad on purpose for now: a "global." inference profile can be served from
+              # any region. Narrowing this is a question for the ADR.
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource: "*"
+      Tags:
+        - Key: PROJECT_NAME
+          Value: !Ref ProjectName
+
+  ParserLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-agenda-parser"
+      RetentionInDays: 7
+
+  ParserFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-agenda-parser"
+      Description: Turns pasted text into a suggested agenda (Claude on Bedrock)
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      ImageConfig:
+        Command: ["app.ai.agenda_lambda.handler"]
+      Architectures: [!Ref Architecture]
+      Role: !GetAtt ParserRole.Arn
+      MemorySize: 512
+      Timeout: 30
+      LoggingConfig:
+        LogGroup: !Ref ParserLogGroup
+      Environment:
+        Variables:
+          PARSER_MODEL: !Ref ParserModel
+          BEDROCK_REGION: !Ref BedrockRegion
+          COGNITO_REGION: !Ref AWS::Region
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+          COGNITO_CLIENT_ID: !Ref CognitoClientId
+      Tags:
+        - Key: PROJECT_NAME
+          Value: !Ref ProjectName
+
+  ParserUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt ParserFunction.Arn
+      AuthType: NONE
+      InvokeMode: BUFFERED
+      # Cognito tokens are checked in the handler; CORS is answered by the URL itself.
+      Cors:
+        AllowOrigins: !Ref CorsOrigins
+        AllowMethods: [POST]
+        AllowHeaders: [authorization, content-type]
+        MaxAge: 3600
+
+  ParserUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ParserFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+  ParserUrlInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ParserFunction
+      Action: lambda:InvokeFunction
+      Principal: "*"
+      InvokedViaFunctionUrl: true
+
+Outputs:
+  ParserUrl:
+    Value: !GetAtt ParserUrl.FunctionUrl
+  LogGroupName:
+    Value: !Ref ParserLogGroup

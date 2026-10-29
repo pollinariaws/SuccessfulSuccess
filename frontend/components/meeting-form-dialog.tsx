@@ -7,7 +7,9 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { AgendaPaste } from "@/components/agenda-paste"
 import { ParticipantsInput } from "@/components/participants-input"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -24,8 +26,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea"
 import { useCreateMeeting, useUpdateMeeting } from "@/hooks/use-meetings"
 import { ApiError } from "@/lib/api"
+import {
+  PARSER_URL,
+  addMinutes,
+  describeAgenda,
+  participantsFrom,
+  wallClockDate,
+} from "@/lib/agenda"
 import { formatTime, parseIsoDay, toIsoDate, toIsoWithOffset } from "@/lib/datetime"
-import type { Meeting } from "@/lib/types"
+import type { AgendaSuggestion, Meeting } from "@/lib/types"
 
 const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/
 
@@ -68,6 +77,16 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>
 
 type ParticipantErrors = { name?: { message?: string }; email?: { message?: string } }
+
+type SuggestedField = "name" | "description" | "date" | "startTime" | "endTime" | "participants"
+
+function Suggested() {
+  return (
+    <Badge variant="secondary" className="ml-2">
+      suggested
+    </Badge>
+  )
+}
 
 /** Flattens react-hook-form's per-row participant errors into { rowIndex: message }. */
 function participantErrors(
@@ -122,6 +141,8 @@ export function MeetingFormDialog({
   const createMeeting = useCreateMeeting()
   const updateMeeting = useUpdateMeeting()
   const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [suggestion, setSuggestion] = useState<AgendaSuggestion | null>(null)
+  const [suggested, setSuggested] = useState<Set<SuggestedField>>(new Set())
   const isEdit = !!meeting
 
   const form = useForm<FormValues>({
@@ -135,6 +156,7 @@ export function MeetingFormDialog({
     control,
     reset,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = form
 
@@ -142,6 +164,60 @@ export function MeetingFormDialog({
   useEffect(() => {
     if (open) reset(defaultValues(meeting))
   }, [open, meeting, reset])
+
+  // A field stops being "suggested" as soon as the person touches it.
+  const unmark = (field: SuggestedField) =>
+    setSuggested((prev) => {
+      if (!prev.has(field)) return prev
+      const next = new Set(prev)
+      next.delete(field)
+      return next
+    })
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setSuggestion(null)
+      setSuggested(new Set())
+    }
+    onOpenChange(next)
+  }
+
+  function applySuggestion(result: AgendaSuggestion) {
+    const agenda = result.agenda
+    const filled = new Set<SuggestedField>()
+    const options = { shouldDirty: true, shouldValidate: true }
+
+    if (agenda.title) {
+      setValue("name", agenda.title, options)
+      filled.add("name")
+    }
+    const description = describeAgenda(agenda)
+    if (description) {
+      setValue("description", description, options)
+      filled.add("description")
+    }
+    const day = agenda.starts_at ? wallClockDate(agenda.starts_at) : null
+    if (day) {
+      setValue("date", day, options)
+      filled.add("date")
+    }
+    // The clock time is taken as the person wrote it, without a UTC offset.
+    const start =
+      agenda.starts_at && agenda.starts_at.length > 10 ? agenda.starts_at.slice(11, 16) : null
+    if (start) {
+      setValue("startTime", start, options)
+      filled.add("startTime")
+      setValue("endTime", addMinutes(start, agenda.duration_minutes ?? 60), options)
+      if (agenda.duration_minutes) filled.add("endTime")
+    }
+    const people = participantsFrom(agenda)
+    if (people.length > 0) {
+      setValue("participants", people, options)
+      filled.add("participants")
+    }
+    setSuggestion(result)
+    setSuggested(filled)
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     const participants = values.participants
@@ -158,6 +234,7 @@ export function MeetingFormDialog({
       starts_at: toIsoWithOffset(values.date, values.startTime),
       ends_at: toIsoWithOffset(values.date, values.endTime),
       participants,
+      ...(suggestion && !meeting ? { ai_suggestion: suggestion } : {}),
     }
 
     try {
@@ -168,7 +245,7 @@ export function MeetingFormDialog({
         await createMeeting.mutateAsync(payload)
         toast.success("Meeting created")
       }
-      onOpenChange(false)
+      handleOpenChange(false)
     } catch (error) {
       if (error instanceof ApiError) {
         // Map server-side field errors back onto the matching inputs.
@@ -192,7 +269,7 @@ export function MeetingFormDialog({
   })
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit meeting" : "New meeting"}</DialogTitle>
@@ -204,14 +281,19 @@ export function MeetingFormDialog({
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
+          {!isEdit && PARSER_URL ? <AgendaPaste onParsed={applySuggestion} /> : null}
+
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">
+              Name
+              {suggested.has("name") ? <Suggested /> : null}
+            </Label>
             <Input
               id="name"
               placeholder="Sprint planning"
               aria-invalid={!!errors.name}
               aria-describedby={errors.name ? "name-error" : undefined}
-              {...register("name")}
+              {...register("name", { onChange: () => unmark("name") })}
             />
             {errors.name ? (
               <p id="name-error" className="text-destructive text-sm">
@@ -221,12 +303,15 @@ export function MeetingFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">
+              Description
+              {suggested.has("description") ? <Suggested /> : null}
+            </Label>
             <Textarea
               id="description"
               rows={3}
               placeholder="What is this meeting about?"
-              {...register("description")}
+              {...register("description", { onChange: () => unmark("description") })}
             />
             {errors.description ? (
               <p className="text-destructive text-sm">{errors.description.message}</p>
@@ -240,7 +325,10 @@ export function MeetingFormDialog({
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2 sm:col-span-1">
-              <Label>Date</Label>
+              <Label>
+                Date
+                {suggested.has("date") ? <Suggested /> : null}
+              </Label>
               <Controller
                 control={control}
                 name="date"
@@ -262,6 +350,7 @@ export function MeetingFormDialog({
                         selected={field.value}
                         onSelect={(date) => {
                           if (date) field.onChange(date)
+                          unmark("date")
                           setDatePickerOpen(false)
                         }}
                         autoFocus
@@ -273,29 +362,53 @@ export function MeetingFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startTime">Start</Label>
-              <Input id="startTime" type="time" step={900} {...register("startTime")} />
+              <Label htmlFor="startTime">
+                Start
+                {suggested.has("startTime") ? <Suggested /> : null}
+              </Label>
+              <Input
+                id="startTime"
+                type="time"
+                step={900}
+                {...register("startTime", { onChange: () => unmark("startTime") })}
+              />
               {errors.startTime ? (
                 <p className="text-destructive text-sm">{errors.startTime.message}</p>
               ) : null}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endTime">End</Label>
-              <Input id="endTime" type="time" step={900} {...register("endTime")} />
+              <Label htmlFor="endTime">
+                End
+                {suggested.has("endTime") ? <Suggested /> : null}
+              </Label>
+              <Input
+                id="endTime"
+                type="time"
+                step={900}
+                {...register("endTime", { onChange: () => unmark("endTime") })}
+              />
               {errors.endTime ? (
                 <p className="text-destructive text-sm">{errors.endTime.message}</p>
               ) : null}
             </div>
           </div>
 
+          {suggested.has("participants") ? (
+            <p className="text-muted-foreground text-sm">
+              Participants <Suggested />
+            </p>
+          ) : null}
           <Controller
             control={control}
             name="participants"
             render={({ field }) => (
               <ParticipantsInput
                 value={field.value}
-                onChange={field.onChange}
+                onChange={(next) => {
+                  field.onChange(next)
+                  unmark("participants")
+                }}
                 errors={participantErrors(errors.participants)}
               />
             )}
@@ -305,7 +418,7 @@ export function MeetingFormDialog({
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

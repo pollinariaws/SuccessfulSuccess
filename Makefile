@@ -325,6 +325,7 @@ aws-deploy-frontend: ## Deploy the frontend to S3 + CloudFront, built against th
 			--build-arg NEXT_PUBLIC_COGNITO_CLIENT_ID="$$(auth_out UserPoolClientId)" \
 			--build-arg NEXT_PUBLIC_COGNITO_DOMAIN="$$(auth_out HostedDomain)" \
 			--build-arg NEXT_PUBLIC_COGNITO_GOOGLE_ENABLED="$$(auth_out GoogleEnabled)" \
+			--build-arg NEXT_PUBLIC_AGENDA_PARSER_URL="$(AGENDA_PARSER_URL)" \
 			./frontend || exit 1; \
 		echo "Uploading to s3://$$bucket"; \
 		$(AWS) s3 sync frontend/out "s3://$$bucket" --delete --exclude "*.html" \
@@ -378,3 +379,10 @@ report-now: ## Build a report on demand: make report-now WEEK=2026-W39
 
 aws-destroy-reports: ## Delete the weekly report stack (before aws-destroy)
 	@AWS_CLI="$(AWS)" PROJECT_NAME="$(PROJECT_NAME)" bash infra/reports.sh destroy
+
+aws-deploy-ai: aws-push ## Deploy the agenda parser (Bedrock)
+	$(require-aws-credentials)
+	@AWS_CLI="$(AWS)" PROJECT_NAME="$(PROJECT_NAME)" ECR_STACK="$(ECR_STACK)" AUTH_STACK="$(AUTH_STACK)" FRONTEND_STACK="$(FRONTEND_STACK)" IMAGE_TAG="$(IMAGE_TAG)" AWS_LAMBDA_ARCH="$(AWS_LAMBDA_ARCH)" bash infra/ai.sh deploy
+
+aws-destroy-ai: ## Delete the agenda parser stack
+	@AWS_CLI="$(AWS)" PROJECT_NAME="$(PROJECT_NAME)" bash infra/ai.sh destroy

@@ -1,7 +1,9 @@
 """Pydantic request/response models for the meetings API."""
 
+import json
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import (
     BaseModel,
@@ -16,6 +18,7 @@ from pydantic import (
 from app.config import settings
 
 MAX_PARTICIPANTS = 50
+MAX_SUGGESTION_BYTES = 20_000
 
 
 class ParticipantCreate(BaseModel):
@@ -47,6 +50,8 @@ class MeetingCreate(BaseModel):
     starts_at: datetime
     ends_at: datetime
     participants: list[ParticipantCreate] = Field(default_factory=list)
+    # The parser's suggestion, kept for evaluation. Only stored when a meeting is created.
+    ai_suggestion: dict[str, Any] | None = None
 
     @field_validator("name")
     @classmethod
@@ -90,6 +95,13 @@ class MeetingCreate(BaseModel):
             if key in seen:
                 raise ValueError(f"duplicate participant: {participant.name}")
             seen.add(key)
+        return value
+
+    @field_validator("ai_suggestion")
+    @classmethod
+    def _bounded_suggestion(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        if value is not None and len(json.dumps(value)) > MAX_SUGGESTION_BYTES:
+            raise ValueError("is too large")
         return value
 
 

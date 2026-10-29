@@ -62,6 +62,7 @@ class MeetingRepository:
             location=payload.location,
             starts_at=payload.starts_at,
             ends_at=payload.ends_at,
+            ai_suggestion=payload.ai_suggestion,
             participants=[
                 Participant(name=p.name, email=p.email, position=index)
                 for index, p in enumerate(payload.participants)
@@ -73,7 +74,11 @@ class MeetingRepository:
         return meeting
 
     async def update(self, meeting: Meeting, payload: MeetingCreate) -> Meeting:
-        """Replace every field and the whole participant list (delete-orphan drops the old rows)."""
+        """Replace every field and the whole participant list (delete-orphan drops the old rows).
+
+        The stored AI suggestion is deliberately left alone: it describes how the meeting
+        was created, not what it looks like now.
+        """
         meeting.name = payload.name
         meeting.description = payload.description
         meeting.location = payload.location

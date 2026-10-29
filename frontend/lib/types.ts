@@ -32,6 +32,21 @@ export type ParticipantInput = {
   email?: string | null
 }
 
+export type ParsedAgenda = {
+  title: string | null
+  starts_at: string | null
+  duration_minutes: number | null
+  items: { topic: string; owner: string | null; minutes: number | null }[]
+  action_items: { task: string; owner: string | null; due: string | null }[]
+  language: string
+}
+
+export type AgendaSuggestion = {
+  agenda: ParsedAgenda
+  model: string
+  prompt_version: string
+}
+
 export type MeetingCreateInput = {
   name: string
   description?: string | null
@@ -39,6 +54,7 @@ export type MeetingCreateInput = {
   starts_at: string
   ends_at: string
   participants: ParticipantInput[]
+  ai_suggestion?: AgendaSuggestion | null
 }
 
 export type ApiErrorDetail = {
