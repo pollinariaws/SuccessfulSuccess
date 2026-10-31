@@ -1,0 +1,10 @@
+project_name        = "successfulsuccess"
+region              = "eu-north-1"
+app_urls            = ["http://localhost:3000/"]
+architecture        = "x86_64"
+app_timezone        = "Europe/Kyiv"
+schedule_expression = "cron(0 7 ? * MON *)"
+schedule_timezone   = "Europe/Kyiv"
+parser_model        = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+bedrock_region      = "eu-north-1"
+mail_to = "polinazuzuk@gmail.com"environment = "dev"

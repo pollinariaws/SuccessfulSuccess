@@ -1,0 +1,124 @@
+[0m[33mRunning plan in HCP Terraform. Output will stream here. Pressing Ctrl-C
+will stop streaming the logs, but will not stop the plan running remotely.[0m
+
+Preparing the remote plan...
+[0m
+[0m[33mTo view this run in a browser, visit:[0m
+[0m[33mhttps://app.terraform.io/app/labs_successfulsuccess/successfulsuccess-dev/runs/run-PN7vbm6bdM3mN2yY[0m
+[0m
+Waiting for the plan to start...
+
+Terraform v1.17.1
+on linux_amd64
+
+Initializing plugins and modules...
+[1mdata.aws_vpc.default: Refreshing...[0m[0m
+[1maws_iam_role.builder: Refreshing state... [id=successfulsuccess-report-builder-role][0m[0m
+[1maws_cloudwatch_log_group.mailer: Refreshing state... [id=/aws/lambda/successfulsuccess-report-mailer][0m[0m
+[1mdata.aws_lambda_function.backend: Refreshing...[0m[0m
+[1maws_iam_role.mailer: Refreshing state... [id=successfulsuccess-report-mailer-role][0m[0m
+[1mdata.aws_cloudformation_stack.ecr: Refreshing...[0m[0m
+[1mdata.aws_cloudformation_stack.backend: Refreshing...[0m[0m
+[1maws_iam_role.parser: Refreshing state... [id=successfulsuccess-agenda-parser-role][0m[0m
+[1mdata.aws_caller_identity.current: Refreshing...[0m[0m
+[1maws_cloudwatch_log_group.builder: Refreshing state... [id=/aws/lambda/successfulsuccess-report-builder][0m[0m
+[1mdata.aws_caller_identity.current: Refresh complete after 1s [id=988492303330][0m[0m
+[1maws_sqs_queue.report_requests_dlq: Refreshing state... [id=https://sqs.eu-north-1.amazonaws.com/988492303330/successfulsuccess-report-requests-dlq][0m[0m
+[1maws_cloudwatch_log_group.parser: Refreshing state... [id=/aws/lambda/successfulsuccess-agenda-parser][0m[0m
+[1maws_cognito_user_pool.main: Refreshing state... [id=eu-north-1_SpDV7jsxI][0m[0m
+[1maws_iam_role.scheduler: Refreshing state... [id=successfulsuccess-report-scheduler-role][0m[0m
+[1maws_s3_bucket.reports: Refreshing state... [id=successfulsuccess-reports-988492303330][0m[0m
+[1maws_iam_role_policy.mailer: Refreshing state... [id=successfulsuccess-report-mailer-role:mailer][0m[0m
+[1mdata.aws_cloudformation_stack.backend: Refresh complete after 1s [id=arn:aws:cloudformation:eu-north-1:988492303330:stack/successfulsuccess-backend/d37b4b70-bd67-11f1-8fe2-0ab07017e493][0m[0m
+[1maws_iam_role_policy.parser_bedrock: Refreshing state... [id=successfulsuccess-agenda-parser-role:bedrock][0m[0m
+[1mdata.aws_cloudformation_stack.ecr: Refresh complete after 1s [id=arn:aws:cloudformation:eu-north-1:988492303330:stack/successfulsuccess-ecr/657fe370-bd66-11f1-8b8b-0effea944a5b][0m[0m
+[1maws_lambda_function.mailer: Refreshing state... [id=successfulsuccess-report-mailer][0m[0m
+[1mdata.aws_lambda_function.backend: Refresh complete after 1s [id=successfulsuccess-backend][0m[0m
+[1maws_sqs_queue.report_requests: Refreshing state... [id=https://sqs.eu-north-1.amazonaws.com/988492303330/successfulsuccess-report-requests][0m[0m
+[1maws_cognito_user_pool_domain.main: Refreshing state... [id=successfulsuccess-988492303330][0m[0m
+[1maws_cognito_user_pool_client.web: Refreshing state... [id=mgv0mavja6jm21dms5imb2l9][0m[0m
+[1maws_iam_role_policy.builder: Refreshing state... [id=successfulsuccess-report-builder-role:builder][0m[0m
+[1maws_iam_role_policy.scheduler_send_to_queue: Refreshing state... [id=successfulsuccess-report-scheduler-role:send-to-queue][0m[0m
+[1maws_scheduler_schedule.weekly_report: Refreshing state... [id=default/successfulsuccess-weekly-report][0m[0m
+[1maws_cognito_managed_login_branding.branding: Refreshing state...[0m[0m
+[1maws_lambda_function.parser: Refreshing state... [id=successfulsuccess-agenda-parser][0m[0m
+[1mdata.aws_vpc.default: Refresh complete after 2s [id=vpc-0d0492cd8ef97c971][0m[0m
+[1mdata.aws_subnets.default: Refreshing...[0m[0m
+[1mdata.aws_route_table.default: Refreshing...[0m[0m
+[1mdata.aws_subnets.default: Refresh complete after 0s [id=eu-north-1][0m[0m
+[1mdata.aws_route_table.default: Refresh complete after 0s [id=rtb-0243588e8622fc8ff][0m[0m
+[1maws_vpc_endpoint.s3: Refreshing state... [id=vpce-0547e367b85ce6188][0m[0m
+[1maws_lambda_permission.parser_url: Refreshing state... [id=AllowFunctionUrlInvoke][0m[0m
+[1maws_lambda_permission.parser_url_invoke: Refreshing state... [id=AllowFunctionInvokeViaUrl][0m[0m
+[1maws_lambda_function_url.parser: Refreshing state... [id=successfulsuccess-agenda-parser][0m[0m
+[1maws_lambda_function.builder: Refreshing state... [id=successfulsuccess-report-builder][0m[0m
+[1maws_lambda_event_source_mapping.builder_queue: Refreshing state... [id=cba8930b-ce0d-44f6-9fb5-a6b7e8130c3a][0m[0m
+[1maws_s3_bucket_public_access_block.reports: Refreshing state... [id=successfulsuccess-reports-988492303330][0m[0m
+[1maws_lambda_permission.mailer: Refreshing state... [id=AllowS3Invoke][0m[0m
+[1maws_s3_bucket_lifecycle_configuration.reports: Refreshing state... [id=successfulsuccess-reports-988492303330][0m[0m
+[1maws_s3_bucket_notification.reports: Refreshing state... [id=successfulsuccess-reports-988492303330][0m[0m
+[1maws_cloudwatch_log_group.mailer: Drift detected (update)[0m[0m
+[1maws_iam_role.mailer: Drift detected (update)[0m[0m
+[1maws_lambda_function.builder: Drift detected (update)[0m[0m
+[1maws_cloudwatch_log_group.parser: Drift detected (update)[0m[0m
+[1maws_lambda_event_source_mapping.builder_queue: Drift detected (update)[0m[0m
+[1maws_lambda_function_url.parser: Drift detected (update)[0m[0m
+[1maws_cloudwatch_log_group.builder: Drift detected (update)[0m[0m
+[1maws_lambda_function.mailer: Drift detected (update)[0m[0m
+[1maws_iam_role.scheduler: Drift detected (update)[0m[0m
+[1maws_iam_role.builder: Drift detected (update)[0m[0m
+[1maws_iam_role.parser: Drift detected (update)[0m[0m
+[1maws_lambda_function.parser: Drift detected (update)[0m[0m
+[1maws_cognito_user_pool.main: Drift detected (update)[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  with aws_iam_role.builder,
+[33m│[0m [0m  on reports.tf line 101, in resource "aws_iam_role" "builder":
+[33m│[0m [0m 101:   managed_policy_arns = [4m[
+[33m│[0m [0m 102:     "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+[33m│[0m [0m 103:   ][0m[0m
+[33m│[0m [0m
+[33m│[0m [0mmanaged_policy_arns is deprecated. Use the aws_iam_role_policy_attachment
+[33m│[0m [0mresource instead. If Terraform should exclusively manage all managed policy
+[33m│[0m [0mattachments (the current behavior of this argument), use the
+[33m│[0m [0maws_iam_role_policy_attachments_exclusive resource as well.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  with aws_iam_role.mailer,
+[33m│[0m [0m  on reports.tf line 247, in resource "aws_iam_role" "mailer":
+[33m│[0m [0m 247:   managed_policy_arns = [4m[
+[33m│[0m [0m 248:     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+[33m│[0m [0m 249:   ][0m[0m
+[33m│[0m [0m
+[33m│[0m [0mmanaged_policy_arns is deprecated. Use the aws_iam_role_policy_attachment
+[33m│[0m [0mresource instead. If Terraform should exclusively manage all managed policy
+[33m│[0m [0mattachments (the current behavior of this argument), use the
+[33m│[0m [0maws_iam_role_policy_attachments_exclusive resource as well.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  with aws_iam_role.parser,
+[33m│[0m [0m  on ai.tf line 13, in resource "aws_iam_role" "parser":
+[33m│[0m [0m  13:   managed_policy_arns = [4m[
+[33m│[0m [0m  14:     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+[33m│[0m [0m  15:   ][0m[0m
+[33m│[0m [0m
+[33m│[0m [0mmanaged_policy_arns is deprecated. Use the aws_iam_role_policy_attachment
+[33m│[0m [0mresource instead. If Terraform should exclusively manage all managed policy
+[33m│[0m [0mattachments (the current behavior of this argument), use the
+[33m│[0m [0maws_iam_role_policy_attachments_exclusive resource as well.
+[33m╵[0m[0m
+
+[0m[1m[32mNo changes.[0m[1m Your infrastructure matches the configuration.[0m
+
+[0mTerraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
+[90m
+─────────────────────────────────────────────────────────────────────────────[0m
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
