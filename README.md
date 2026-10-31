@@ -391,3 +391,10 @@ There is no deploy (CD) stage — no target is configured yet.
 - The frontend runs `next dev` in the container with the same bind mount.
 - Backend tests run against a real Postgres (`meetings_test`), truncating tables
   between tests; `make test` creates that database if it is missing.
+
+## Infrastructure
+Infrastructure (`auth`, `reports`, `ai`) has been migrated from CloudFormation to Terraform:
+- Preview changes: `make infra-plan`
+- Format HCL: `make infra-fmt`
+- Validation: `make infra-validate`
+Deploys are managed via HCP Terraform upon merging a Pull Request into `main`.
