@@ -393,8 +393,126 @@ There is no deploy (CD) stage — no target is configured yet.
   between tests; `make test` creates that database if it is missing.
 
 ## Infrastructure
-Infrastructure (`auth`, `reports`, `ai`) has been migrated from CloudFormation to Terraform:
-- Preview changes: `make infra-plan`
-- Format HCL: `make infra-fmt`
-- Validation: `make infra-validate`
-Deploys are managed via HCP Terraform upon merging a Pull Request into `main`.
+
+Infrastructure components are organized across clouds using Terraform:
+- **AWS Infrastructure (`infra/`)**: Cognito User Pool, S3 reports bucket, SQS queues, EventBridge scheduler, and Bedrock AI Lambda function managed via HCP Terraform workspace `successfulsuccess-dev`.
+- **GCP Infrastructure (`gcp/`)**: Core application components on Google Cloud (Cloud Run API, Cloud SQL PostgreSQL, Artifact Registry, Secret Manager, and Firebase Hosting) managed via workspace `successfulsuccess-gcp`.
+
+---
+
+## Multi-Cloud Deployment: Google Cloud Platform (GCP)
+
+For Lab 9, the core of Spry runs on Google Cloud Platform while asynchronous pipelines (weekly reporting and agenda parsing) remain on AWS.
+
+### Architecture Overview
+
+- **Frontend**: Firebase Hosting with global edge CDN, managed SSL, and rewrites (`/api/**`) to Cloud Run.
+- **Backend API**: FastAPI running in Google Cloud Run (containerized, serverless, scales to zero, CPU allocated only during requests).
+- **Database**: Cloud SQL for PostgreSQL (`db-f1-micro`, 10 GB SSD, private Unix socket connection via Cloud SQL Proxy).
+- **Secrets & Configuration**: Cloud SQL password and connection URL stored securely in Google Cloud Secret Manager.
+- **Container Registry**: Google Artifact Registry (`successfulsuccess-backend`).
+
+### Step-by-Step Deployment to GCP
+
+#### 1. Prerequisites and Authentication
+
+Set up your Google Cloud project (e.g. `spry-<yourname>-2026`) and authenticate without long-lived JSON keys:
+
+```bash
+# Set your project ID
+export GCP_PROJECT_ID="spry-polina-2026"
+gcloud config set project $GCP_PROJECT_ID
+
+# Authenticate with application default credentials
+gcloud auth login
+gcloud auth application-default login
+```
+
+#### 2. Provision Infrastructure with Terraform
+
+```bash
+cd gcp
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars to set your project_id
+
+terraform init
+terraform plan
+terraform apply
+```
+
+Note the outputs: `cloud_run_url`, `cloud_sql_instance_name`, `artifact_registry_image_uri`.
+
+#### 3. Build & Push Backend Container to Artifact Registry
+
+```bash
+# Configure Docker authentication for Artifact Registry
+gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+# Build and push the image
+IMAGE_URI=$(terraform -chdir=gcp output -raw artifact_registry_image_uri)
+docker build -t "$IMAGE_URI" backend/
+docker push "$IMAGE_URI"
+
+# Trigger a Cloud Run update to pick up the newly pushed container
+gcloud run deploy successfulsuccess-api \
+  --image "$IMAGE_URI" \
+  --region us-central1 \
+  --project "$GCP_PROJECT_ID"
+```
+
+Database migrations (`alembic upgrade head`) execute automatically upon container boot via `backend/entrypoint.sh`.
+
+#### 4. Build & Deploy Frontend to Firebase Hosting
+
+```bash
+# Build static export with the Cloud Run API URL
+export NEXT_PUBLIC_API_BASE_URL=$(terraform -chdir=gcp output -raw cloud_run_url)
+
+docker build --target export --output type=local,dest=frontend/out \
+  --build-arg NEXT_PUBLIC_API_BASE_URL="$NEXT_PUBLIC_API_BASE_URL" \
+  ./frontend
+
+# Deploy static assets to Firebase Hosting
+firebase deploy --only hosting --project "$GCP_PROJECT_ID"
+```
+
+#### 5. Verify the Deployment
+
+- Open the Firebase Hosting URL (or Cloud Run URL `/health`).
+- The health check `GET /health` executes `SELECT 1` against Cloud SQL and returns:
+  ```json
+  {"status": "ok", "database": "ok", "version": "1.0.0"}
+  ```
+
+---
+
+### What Still Runs on AWS
+
+- **Cognito User Pool**: User identity and JWT authentication tokens. Cloud Run API validates Cognito tokens via public JWKS.
+- **Weekly Report Pipeline**: EventBridge Scheduler, SQS request queues, and Lambda report builder.
+- **LLM Agenda Parser**: AWS Bedrock Claude 3.5 Sonnet / Haiku Lambda function.
+
+---
+
+### Stopping the Database & Cost Discipline (Clean Up)
+
+Cloud SQL instances do not pause automatically and bill continuously if left running.
+
+- **To pause compute billing (keeps storage):**
+  ```bash
+  gcloud sql instances patch $(terraform -chdir=gcp output -raw cloud_sql_instance_name) \
+    --activation-policy NEVER \
+    --project $GCP_PROJECT_ID
+  ```
+- **To resume the database:**
+  ```bash
+  gcloud sql instances patch $(terraform -chdir=gcp output -raw cloud_sql_instance_name) \
+    --activation-policy ALWAYS \
+    --project $GCP_PROJECT_ID
+  ```
+- **To completely destroy all GCP lab resources:**
+  ```bash
+  cd gcp
+  terraform destroy
+  ```
+

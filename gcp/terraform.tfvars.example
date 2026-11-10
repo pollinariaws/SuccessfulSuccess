@@ -1,0 +1,15 @@
+# Google Cloud Project Configuration
+project_id   = "spry-polina-2026"
+region       = "us-central1"
+app_name     = "successfulsuccess"
+environment  = "dev"
+
+# Database Configuration
+db_tier      = "db-f1-micro"
+db_name      = "meetings"
+db_user      = "app"
+
+# Application Settings
+app_timezone = "Europe/Kyiv"
+cors_origins = "*"
+image_tag    = "latest"
